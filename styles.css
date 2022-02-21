@@ -44,7 +44,7 @@ body{
 }
 
 .controls__btns button:active{
-  transform: sca(0.98);
+  transform: scale(0.98);
 }
 
 .controls .controls__colors{
