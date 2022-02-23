@@ -25,6 +25,37 @@ let erasing = false;
 let filling = 'painting';
 let sizing = 'brush';
 
+let convertColorArray;
+function convertColor(color){
+  let hex = color.replace("#", '');
+  let r, g, b, opacity;
+
+  if(hex.length === 3){
+    hex = `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  }else if(hex.length > 6){
+    hex = color.replace("rgba(","").replace(")","").replace(" ","");
+    hex = hex.split(",");
+    r = parseInt(hex[0]);
+    g = parseInt(hex[1]);
+    b = parseInt(hex[2]);
+    opacity = parseFloat(hex[3]*255, 16);
+  }else{
+    r = parseInt(hex.substring(0, 2), 16);
+    g = parseInt(hex.substring(2, 4), 16);
+    b = parseInt(hex.substring(4, 6), 16);
+    opacity = 255;
+  }
+
+  // if(opacity > 0 && opacity <= 10){
+  //   opacity = opacity / 10;
+  // }
+
+  convertColorArray = { r: r, g: g, b: b, a: opacity};
+
+  return convertColorArray;
+}
+
+
 function stopPainting(){
   painting = false;
 }
@@ -51,6 +82,7 @@ function onMouseMove(event){
       ctx.moveTo(x, y);
     }else{
       ctx.lineTo(x, y);
+      ctx.globalAlpha = 0.1;
       ctx.stroke();
     }
   }else{
@@ -62,7 +94,10 @@ function onMouseMove(event){
 
 function handleColorClick(event){
   const color = event.target.style.backgroundColor;
-  ctx.strokeStyle = color;
+  convertColor(color);
+  let rgbaColor = `rgba(${convertColorArray.r}, ${convertColorArray.g}, ${convertColorArray.b}, ${convertColorArray.a/255})`;
+  ctx.strokeStyle = rgbaColor;
+  console.log(ctx.strokeStyle);
   ctx.fillStyle = color;
   rangeEraser.style.display = 'none';
   range.style.display = 'block';
@@ -108,19 +143,16 @@ function handleModeClick(){
 
 function handleCanvasClick(event){
   const rect = canvas.getBoundingClientRect();
-  const posx = event.clientX - rect.left;
-  const posy = event.clientY - rect.top;  
   
   if(filling == 'filling'){
     // let imageData = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    
     // ctx.putImageData(imageData, 0, 0);
-    // console.log(ctx);
-    let brushColor = { color: "rgba(255, 0, 0, 255)", r: 255, g: 0, b: 0, a: 255 };
+    
+    convertColor(ctx.fillStyle);
+    let brushColor = { color: ctx.fillStyle, r: convertColorArray.r, g: convertColorArray.g, b: convertColorArray.b, a: convertColorArray.a };
     actionFill(event.offsetX, event.offsetY, brushColor);
   }
 }
-
 
 //For undo ability, store starting coords, and pass them into actionFill
 function actionFill(startX, startY, currentColor) {
@@ -202,10 +234,10 @@ function actionFill(startX, startY, currentColor) {
     // source = canvas.toDataURL();
     // renderImage();
 
-    // if (pixelStack.length) {
-    //   floodFill();
-    //   // window.setTimeout(floodFill, 100);
-    // }
+    if (pixelStack.length) {
+      floodFill();
+      // window.setTimeout(floodFill, 100);
+    }
   }
 
   //render floodFill result
@@ -223,7 +255,7 @@ function actionFill(startX, startY, currentColor) {
     colorLayer.data[pixelPos] = currentColor.r;
     colorLayer.data[pixelPos + 1] = currentColor.g;
     colorLayer.data[pixelPos + 2] = currentColor.b;
-    colorLayer.data[pixelPos + 3] = 255;
+    colorLayer.data[pixelPos + 3] = currentColor.a;
   }
 }
 
